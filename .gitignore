@@ -24,3 +24,4 @@ sdif-*.tar
 
 .gitsecret/keys/random_seed
 !*.secret
+test/sample.sd3
