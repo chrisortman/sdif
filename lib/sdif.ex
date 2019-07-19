@@ -3,6 +3,7 @@ defmodule Sdif do
   Documentation for Sdif.
   """
 
+
   @doc """
   Hello world.
 
@@ -20,26 +21,15 @@ defmodule Sdif do
     "A0" => :file_description,
     "B1" => :meet,
     "B2" => :meet_host,
-    "C1" => :team_id
+    "C1" => :team_id,
+    "D0" => :individual_event,
+    "D3" => :individual_information,
+    "Z0" => :file_terminator
   }
 
   def parse(<<const::binary-size(2), rest::binary>>) do
-    Map.get(@const_to_kind, const, :unknown) |> parse(rest)
+    Access.get(@const_to_kind, const, :unknown) |> parse(rest)
   end
-  def print({kind, items}) do
-    Enum.find(@const_to_kind, fn {k,v} -> v == kind end) |> elem(0) |> print(kind, items)
-  end
-  # def parse(<<"A0", line::binary>>), do: parse(:file_description, line)
-  # def print({:file_description,items}), do: print("A0",:file_description, items)
-  #
-  # def parse(<<"B1", line::binary>>), do: parse(:meet, line)
-  # def print({:meet, items}), do: print("B1",:meet, items)
-  #
-  # def parse(<<"B2", line::binary>>), do: parse(:meet_host, line)
-  # def print({:meet_host, items}), do: print("B2",:meet_host, items)
-  #
-  # def parse(<<"C1", line::binary>>), do: parse(:team_id, line)
-  # def print({:team_id, items}), do: print("C1",:team_id, items)
 
   def parse(other) when is_binary(other) do
     {:unknown,other}
@@ -48,6 +38,11 @@ defmodule Sdif do
   def print({:unknown, line}) do
     line
   end
+
+  def print({kind, items}) do
+    Enum.find(@const_to_kind, fn {k,v} -> v == kind end) |> elem(0) |> print(kind, items)
+  end
+
 
   defp parse(kind, line) do
 
@@ -59,16 +54,18 @@ defmodule Sdif do
         <<f_val::binary-size(f_length),unparsed::binary>> ->
 
           final_val = case f_type do
-            :date -> parse_date(f_val)
+            :date ->
+              if f_val != "        " do
+                parse_date(f_val)
+              else
+                ""
+              end
             _ -> String.trim(f_val)
           end
-          items = Keyword.put(parsed, f_key, final_val)
+          items = put_in(parsed, [f_key], final_val)
           {unparsed, items}
         _ ->
-          IO.puts "Failed match"
-          IO.inspect f
-          IO.inspect rest
-          IO.puts "-----------------\n"
+          print_failure(f,rest)
           {"", parsed}
       end
     end)
@@ -80,21 +77,42 @@ defmodule Sdif do
       field_list(kind)
       |> Enum.map(fn
 
-        {f, :future, length} -> Keyword.get(items,f) |> String.pad_trailing(length)
+        {:event_number, :alpha, 4} ->
+          val = items[:event_number]
+          case String.length(val) do
+            3 -> val <> " "
+            2 -> " " <> val <> " "
+            _ -> val
+          end
+        {:swimmer_age_or_class, :alpha, 2} -> String.pad_leading(items[:swimmer_age_or_class],2)
+        {f, :future, length} -> items[f] |> String.pad_trailing(length)
         {f, :date, 8} ->
-          d = Keyword.get(items,f)
-          month = Integer.to_string(d.month) |> String.pad_leading(2,"0")
-          day = Integer.to_string(d.day) |> String.pad_leading(2,"0")
-          year = Integer.to_string(d.year)
-          month <> day <> year
-        {f,:integer, length} -> Keyword.get(items,f) |> String.pad_leading(length)
-        {f,_, length} -> Keyword.get(items,f) |> String.pad_trailing(length)
+          d = items[f]
+          case d do
+            %Date{} ->
+              month = Integer.to_string(d.month) |> String.pad_leading(2,"0")
+              day = Integer.to_string(d.day) |> String.pad_leading(2,"0")
+              year = Integer.to_string(d.year)
+              month <> day <> year
+            "" -> String.pad_trailing("",8)
+          end
+        {f, :time, length} -> items[f] |> String.pad_leading(length)
+        {f,:integer, length} -> items[f] |> String.pad_leading(length)
+        {f,:decimal, length} -> items[f] |> String.pad_leading(length)
+        {f,_, length} -> items[f] |> String.pad_trailing(length)
 
       end) |> Enum.join
 
-    const <> fields <> "\n"
+    record = const <> fields
+    String.pad_trailing(record,160) <> "\n"
   end
 
+  defp print_failure(f,rest) do
+    IO.puts "Failed match"
+    IO.inspect f
+    IO.inspect rest
+    IO.puts "-----------------\n"
+  end
 
   defp field_list(:file_description) do
     [
@@ -153,6 +171,86 @@ defmodule Sdif do
       {:fu3, :future, 10}
     ]
   end
+
+  defp field_list(:individual_event) do
+    [
+      {:org, :code, 1},
+      {:fu1, :future, 8},
+      {:swimmer_name, :name, 28},
+      {:uss_number, :alpha, 12},
+      {:attach_code, :code, 1},
+      {:citizen_code, :code, 3},
+      {:swimmer_birth_date, :date, 8},
+      {:swimmer_age_or_class, :alpha, 2},
+      {:sex_code, :code, 1},
+      {:event_sex_code, :code, 1},
+      {:event_distance, :integer, 4},
+      {:stroke_code, :code, 1},
+      {:event_number, :alpha, 4},
+      {:event_age_code, :code, 4},
+      {:date_of_swim, :date, 8},
+      {:seed_time, :time, 8},
+      {:course_code_1, :code, 1},
+      {:prelim_time, :time, 8},
+      {:course_code_2, :code, 1},
+      {:swim_off_time, :time, 8},
+      {:course_code_3, :code, 1},
+      {:finals_time, :time, 8},
+      {:course_code_4, :code, 1},
+      {:prelim_heat_number, :integer, 2},
+      {:prelim_lane_number, :integer, 2},
+      {:finals_heat_number, :integer, 2},
+      {:finals_lane_number, :integer, 2},
+      {:prelim_place_ranking, :integer, 3},
+      {:finals_place_ranking, :integer, 3},
+      {:points_scored_from_finals, :decimal, 4},
+      {:event_time_class_code, :code, 2}
+    ]
+  end
+
+  defp field_list(:individual_information) do
+    [
+      {:uss_number, :ussnum, 14},
+      {:preferred_first_name, :alpha, 15},
+      {:ethnicity_code, :code, 2},
+      {:junior_high_school, :logical, 1},
+      {:senior_high_school, :logical, 1},
+      {:ymca_ywca, :logical, 1},
+      {:college, :logical, 1},
+      {:summer_swim_league, :logical, 1},
+      {:masters, :logical, 1},
+      {:disabled_sports_organizations, :logical, 1},
+      {:water_polo, :logical, 1},
+
+      {:none, :logical, 1},
+      {:fu1, :future, 118}
+    ]
+  end
+
+  defp field_list(:file_terminator) do
+    [
+      {:org, :code, 1},
+      {:fu1, :future, 8},
+      {:file_code, :code, 2},
+      {:notes, :alpha, 30},
+      {:num_b_rec, :integer, 3},
+      {:num_diff_meets, :integer, 3},
+      {:num_c_rec, :integer, 4},
+      {:num_diff_teams, :integer, 4},
+      {:num_d_rec, :integer, 6},
+      {:num_diff_swimmers, :integer, 6},
+      {:num_e_rec, :integer, 5},
+      {:num_f_rec, :integer, 6},
+      {:num_g_rec, :integer, 6},
+      {:batch_number, :integer, 5},
+      {:num_new_members, :integer, 2},
+      {:garbage, :future, 10}
+    ]
+  end
+  defp field_list(:unknown) do
+    []
+  end
+
   defp parse_date(str) do
 
     <<
