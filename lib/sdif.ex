@@ -1,11 +1,9 @@
 defmodule Sdif do
-
   alias Sdif.Field
 
   @moduledoc """
   Documentation for Sdif.
   """
-
 
   @doc """
   Hello world.
@@ -33,19 +31,20 @@ defmodule Sdif do
   def parse(<<const::binary-size(2), rest::binary>>) do
     kind =
       @const_to_kind
-      |> Access.get( const, :unknown)
+      |> Access.get(const, :unknown)
 
     fields = field_list(kind)
-    Field.parse({kind,fields}, rest)
+    Field.parse({kind, fields}, rest)
   end
 
   def print({kind, items}) do
-    const = @const_to_kind
-      |> Enum.find(fn {k,v} -> v == kind end)
+    const =
+      @const_to_kind
+      |> Enum.find(fn {k, v} -> v == kind end)
       |> elem(0)
 
     fields = field_list(kind)
-    Field.print(const, {kind,fields}, items)
+    Field.print(const, {kind, fields}, items)
   end
 
   defp field_list(:file_description) do
@@ -61,7 +60,7 @@ defmodule Sdif do
       {:file_date, :date, 8},
       {:fu2, :future, 42},
       {:submitted_by_lsc, :alpha, 2},
-      {:fu3,:future, 3}
+      {:fu3, :future, 3}
     ]
   end
 
@@ -155,7 +154,6 @@ defmodule Sdif do
       {:masters, :logical, 1},
       {:disabled_sports_organizations, :logical, 1},
       {:water_polo, :logical, 1},
-
       {:none, :logical, 1},
       {:fu1, :future, 118}
     ]
