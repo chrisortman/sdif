@@ -10,7 +10,7 @@ defmodule SdifTest do
 
     assert Sdif.parse(sample) ==
              {:file_description,
-              [
+              %{
                 org: "1",
                 sdif_version: "V3",
                 file_code: "01",
@@ -20,7 +20,7 @@ defmodule SdifTest do
                 contact_name: "Coach, Some",
                 contact_phone: "3191112222",
                 file_date: ~D[2019-05-28]
-              ]}
+              }}
 
     Enum.each(sample_lines(), fn line ->
       assert roundtrip(line) == line

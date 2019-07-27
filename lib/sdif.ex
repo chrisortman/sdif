@@ -48,26 +48,31 @@ defmodule Sdif do
   end
 
   def extract_files(src_directory), do: extract_files(src_directory, src_directory)
+
   def extract_files(src_directory, to_directory) do
     src_directory
-    |> Path.expand
+    |> Path.expand()
     |> entry_files
     |> Enum.flat_map(fn file ->
-      IO.puts "Extract #{file[:file_name]}"
+      IO.puts("Extract #{file[:file_name]}")
       Sdif.EntryFile.extract(src_directory, file[:file_name], to_directory)
     end)
   end
 
-  def entry_files(directory \\ "/Users/cortman/Documents/SwimMeets/Splash Out Hunger/Meet Entries/Entry Files for MM") do
+  def entry_files(
+        directory \\ "/Users/cortman/Documents/SwimMeets/Splash Out Hunger/Meet Entries/Entry Files for MM"
+      ) do
     {:ok, files} = File.ls(directory)
-    zips = Enum.filter(files, fn f ->
-      String.upcase(f) |> String.ends_with?(".ZIP")
-    end)
+
+    zips =
+      Enum.filter(files, fn f ->
+        String.upcase(f) |> String.ends_with?(".ZIP")
+      end)
 
     entry_files =
       zips
       |> Enum.map(&Sdif.EntryFile.parse_file_name/1)
-      |> Sdif.EntryFile.select_newest
+      |> Sdif.EntryFile.select_newest()
 
     entry_files
   end

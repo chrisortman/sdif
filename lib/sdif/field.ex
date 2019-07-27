@@ -1,7 +1,7 @@
 defmodule Sdif.Field do
   def parse({kind, fields}, line) do
     {line, items} =
-      Enum.reduce(fields, {line, []}, fn f, {rest, parsed} ->
+      Enum.reduce(fields, {line, %{}}, fn f, {rest, parsed} ->
         {f_key, f_type, f_length} = f
 
         case rest do
@@ -28,7 +28,7 @@ defmodule Sdif.Field do
         end
       end)
 
-    {kind, Enum.reverse(items)}
+    {kind, items}
   end
 
   def parse(other) when is_binary(other) do
