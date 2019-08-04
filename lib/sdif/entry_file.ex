@@ -2,10 +2,17 @@ defmodule Sdif.EntryFile do
   @file_name_regex ~r/(?<team>[[:alnum:]]+)[_-](?<order>[[:digit:]]+)\.[zZ][iI][pP]/
 
   def load(file_path) do
-    file_path
-    |> Path.expand()
-    |> File.stream!()
-    |> Enum.map(&Sdif.parse/1)
+    data =
+      file_path
+      |> Path.expand()
+      |> File.stream!()
+      |> Enum.map(&Sdif.parse/1)
+
+    # if Enum.any?(data, &(match?({:unknown,_}, &1))) do
+    #   IO.puts "File: #{file_path}"
+    #   IO.puts "Unknown data format"
+    # end
+    data
   end
 
   @doc """

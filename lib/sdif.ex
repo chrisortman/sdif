@@ -5,19 +5,6 @@ defmodule Sdif do
   Documentation for Sdif.
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Sdif.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
-
   @const_to_kind %{
     "A0" => :file_description,
     "B1" => :meet,

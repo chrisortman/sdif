@@ -1,4 +1,9 @@
 defmodule Sdif.Field do
+
+  def parse({:unknown,[]}, line) when is_binary(line) do
+    {:unknown, line}
+  end
+
   def parse({kind, fields}, line) do
     {line, items} =
       Enum.reduce(fields, {line, %{}}, fn f, {rest, parsed} ->
@@ -31,9 +36,6 @@ defmodule Sdif.Field do
     {kind, items}
   end
 
-  def parse(other) when is_binary(other) do
-    {:unknown, other}
-  end
 
   def print({:unknown, line}) do
     line
